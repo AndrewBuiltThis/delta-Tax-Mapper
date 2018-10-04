@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: Roboto, sans-serif;
+}
+
+@import url('https://esri.github.io/calcite-maps/dist/css/calcite-maps-bootstrap.min-v0.9.css');
+@import url('https://esri.github.io/calcite-maps/dist/css/calcite-maps-arcgis-4.x.min-v0.9.css');
+@import url('https://js.arcgis.com/4.9/esri/css/main.css');

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <link rel="shortcut icon" href="dist/favicon.ico" type="image/x-icon">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="This application allows users to visualize and analyze how areas of Charlotte, North Carolina are changing - measured by their tax values.">
+    <meta name="keywords" content="clt,webapp, tax, gentrifcation, taxes, charlotte, analysis">
+    <meta name="robots" content="index,follow">
+    <meta name="geo.position" content="35;-80">
+    <meta name="geo.placename" content="Charlotte">
+    <meta name="geo.region" content="USA North Carolina">
+    <meta name="author" content="Andrew Valenski">
+    <title>Delta CLT</title>
+    <link rel="stylesheet" href="dist/main.css">
+  </head>
+  
+  <body class="calcite-maps calcite-nav-top">
+    <!-- Navbar -->
+    <nav class="navbar calcite-navbar navbar-fixed-top calcite-text-light calcite-bg-dark" style="margin:20px; background-color: #333; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);">
+      <!-- Drop Down Menu -->
+      <div class="dropdown calcite-dropdown calcite-text-dark calcite-bg-light" role="presentation">
+        <a class="dropdown-toggle" role="menubutton" aria-haspopup="true" aria-expanded="false" tabindex="0">
+          <div class="calcite-dropdown-toggle">
+            <span class="sr-only">Toggle dropdown menu</span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+		<!-- Have no yet found out how to use the modals in the calcite-bootstrap 4.9 environment :( -->
+          <li><a role="menuitem" tabindex="0" data-target="#" aria-haspopup="true"><span class="glyphicon glyphicon-info-sign"></span> About</a></li>
+          <li><a role="menuitem" tabindex="0" data-target="#" aria-haspopup="true"><span class="glyphicon glyphicon-list-alt"></span> Help</a></li>
+          <li><a role="menuitem" tabindex="0" data-target="#" aria-haspopup="true"><span class="glyphicon glyphicon-fullscreen"></span> Keep Learning</a></li>
+          <li><a role="menuitem" tabindex="0" data-target="#" aria-haspopup="true"><span class="glyphicon glyphicon-fullscreen"></span> AndrewBuiltThis</a></li>
+        </ul>
+      </div>
+      <!-- Title -->
+      <div class="calcite-title calcite-overflow-hidden">
+        <span class="calcite-title-main">Δ CLT</span>
+        <span class="calcite-title-divider hidden-xs"></span>
+        <span class="calcite-title-sub hidden-xs">Tax Analysis. Simplified.</span>
+      </div>
+      <!-- Nav -->
+      <ul class="nav navbar-nav calcite-nav">
+        <li class="dropdown-toggle">
+          <div class="calcite-navbar-search calcite-search-expander" tabindex="-1">
+            <div role="presentation" class="esri-search__container">
+              <div id="polygonButton" role="button" title="Draw Your Area" class="esri-search__submit-button action button esri-widget--button" tabindex="0">
+                <span aria-hidden="true" role="presentation" class="esri-icon-polygon"></span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="dropdown-toggle">
+          <div class="calcite-navbar-search calcite-search-expander" tabindex="-1">
+            <div role="presentation" class="esri-search__container">
+              <div id="resetBtn" role="button" title="Clear Graphics" class="esri-search__submit-button action button esri-widget--button" tabindex="0">
+                <span aria-hidden="true" role="presentation" class="esri-icon-trash"></span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="dropdown-toggle">
+          <div class="calcite-navbar-search calcite-search-expander">
+            <div id="searchWidgetDiv"></div>
+          </div>
+        </li>
+      </ul>
+    </nav>
+	
+    <!-- Map View -->
+    <div class="calcite-map calcite-map-absolute">
+      <div id="mapViewDiv"></div>
+    </div>
+	
+    <!-- Right Panel -->
+    <div class="calcite-panels calcite-panels-right calcite-text-light calcite-bg-dark panel-group" style="padding-top: 20px; padding-right:5px; padding-left:5px; ">
+      <div id="panelInfo" class="panel collapse in" style="box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);">
+        <div id="headingInfo" class="panel-heading" role="tab" style="background-color: #333;">
+          <div class="panel-title">
+            <a class="panel-toggle" role="button" data-toggle="collapse" href="#collapseInfo"  aria-expanded="true" aria-controls="collapseInfo"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span><span class="panel-label lead" >Ready. Set. Explore.</span></a> 
+            <a class="panel-close" role="button" data-toggle="collapse" tabindex="0" href="#collapseInfo"><span class="esri-icon esri-icon-close" aria-hidden="true"></span></a>
+          </div>
+        </div>
+        <div id="collapseInfo" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingInfo">
+          <div class="panel-body" style="min-width:500px; max-width:550px; max-height:80vh;">
+            <div id="panel">
+              <div>
+                <span id='area-value' class='lead'></span><span> 2017 Home Value in this Area</span>
+                <br />
+                <span id='historic-value' class='lead'></span><span> 2015 Home Value in this Area </span>
+              </div>
+            </div>
+            <div style="padding: 15px;">
+              <canvas id="totalValueChart" ></canvas>
+            </div>
+            <div style="padding: 15px;">
+              <canvas id="propertyValueChart" ></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+	
+    <!-- Connect to Chart.JS -->
+		<!-- The Web CDN<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.js"></script> -->
+	<script src="src/javascripts/chart.js"></script>
+	
+	<!-- Configure DOJO so we can use AMD style requirements in the app -->
+    <script type="text/javascript">
+      var dojoConfig = {
+        packages: [{
+          name: "bootstrap",
+          location: "https://esri.github.io/calcite-maps/dist/vendor/dojo-bootstrap"
+        },
+        {
+          name: "calcite-maps",
+          location: "https://esri.github.io/calcite-maps/dist/js/dojo"
+          
+        }]
+      };
+    </script>
+	
+    <!-- Connect to Esri 4.9 JS API -->
+		<!-- The Web CDN <script src="https://js.arcgis.com/4.9/"></script> -->
+	<script src="src/javascripts/esri-4.9-js-api.js"></script>
+	
+	
+    <!-- Create Web Map from Esri JS API -->
+    <script>
+      require([
+        // ArcGIS
+        "esri/views/MapView",
+        "esri/Map",
+        "esri/PopupTemplate",
+        "esri/layers/FeatureLayer",
+        "esri/Graphic",
+        "esri/layers/GraphicsLayer",
+        "esri/geometry/Polygon",
+      
+        // Widgets
+        "esri/widgets/Home",
+        "esri/widgets/Zoom",
+        "esri/widgets/Search",
+        "esri/widgets/BasemapToggle",
+        "esri/widgets/Sketch/SketchViewModel",
+        "esri/widgets/Expand",
+      
+        // Bootstrap
+        "bootstrap/Collapse",
+        "bootstrap/Dropdown",
+      
+        // Calcite Maps
+        "calcite-maps/calcitemaps-v0.9",
+        
+        // Calcite Maps ArcGIS Support
+        "calcite-maps/calcitemaps-arcgis-support-v0.9",
+        "dojo/domReady!"
+      
+      ], function(MapView, Map, PopupTemplate, FeatureLayer, Graphic, GraphicsLayer, Polygon,
+      Home, Zoom, Search, BasemapToggle, SketchViewModel, Expand,
+      Collapse, Dropdown, 
+      CalciteMaps, 
+      CalciteMapArcGISSupport) {
+      
+      // Global Variables
+      var totalValue2015,totalValue2016,totalValue2017, landValue2015,landValue2016,landValue2017;
+      
+      // This creates a constant (unoverwriteable variable) for the sketched geometry
+      const tempGraphicsLayer = new GraphicsLayer(); 
+      
+      // Create a map object
+      const map = new Map({
+        basemap: "gray",
+        layers: [tempGraphicsLayer]
+      });
+        
+      // Create the view for the map to occupy with variables defining how it appears and operates.
+        // For instance, we deinfe 'mapViewDiv' as that is the name of our <div> in the above HTML; we
+        // set the map to be 'map' (the constant we set above). If we named the above constant "citizenKaneWasMeh"
+        // then we'd set 'map: citizenKaneWasMeh'; we set the zoom and center (self-explanatory); we set the
+        // padding so that our widgets don't overlap our floating navbar; we also tell it "there are no
+        // components (widgets)" initially so it'll load faster.
+      const mapView = new MapView({
+        container: "mapViewDiv",
+        map: map,
+        center: [-80.8, 35.23],
+        zoom: 15,
+        padding: {
+          top: 70,
+          left: 5,
+          bottom: 0
+        },
+        ui: {components: []}
+      });
+      
+      // Create the PopupTemplate for the Tax Layer. This coincides with the schema of the service I published
+      // so this will need to be changed to reflect your webs service's information.
+      const popTemplate = { 
+        title: "Housing Prices for Parcel: {commonpid}",
+        content: [{
+          type: "fields",
+          fieldInfos: [{
+            fieldName: "totalvalue",
+            label: "2017 Value",
+            visible: true,
+            format: {
+              digitSeparator: true,
+              places: 0
+            }
+          },
+		  {
+            fieldName: "landvalue",
+            label: "2017 Land Value",
+            visible: true,
+            format: {
+              digitSeparator: true,
+              places: 0
+            }
+          },
+		  {
+            fieldName: "landvalue_12",
+            label: "2016 Land Value",
+            visible: true,
+            format: {
+              digitSeparator: true,
+              places: 0
+            }
+            },
+			{
+              fieldName: "extravalue_12",
+              label: "2016 Land Value",
+              visible: true,
+              format: {
+                digitSeparator: true,
+                places: 0
+              }
+            },
+			{
+              fieldName: "totalvalue_1",
+              label: "2015 Property Value",
+              visible: true,
+              format: {
+                digitSeparator: true,
+                places: 0
+              }
+            },
+			{
+              fieldName: "landvalue_1",
+              label: "2015 Land Value",
+              visible: true,
+              format: {
+                digitSeparator: true,
+                places: 0
+              }
+            }]
+          }]
+        };
+        
+      // This is the web service containing the locations and attributes about home values in Charlotte.
+        // I'd suggest checking out the service to see how I chose to set it up (one layer with the appropriate
+        // fields added yearly -- you may opt for a more elegant solution (related tables, etc.), but I chose
+        // to use a spatial view (i.e. handle the the formatting at the database level).
+      const taxHistoryFeatureLayer = new FeatureLayer({
+        url: "https://services.arcgis.com/9Nl857LBlQVyzq54/ArcGIS/rest/services/pointParcelPOC/FeatureServer/0",
+        outFields: ["*"],
+        popupTemplate: popTemplate
+      });
+      
+      // Add the above web service to our map
+      map.add(taxHistoryFeatureLayer);
+      
+      // Popup and panel sync
+      mapView.when(function(){
+        CalciteMapArcGISSupport.setPopupPanelSync(mapView);
+      }); 
+      
+      // Create a search Widget and define its container in the HTML
+      const searchWidget = new Search({
+        container: "searchWidgetDiv",
+        view: mapView
+      });
+      
+      // This tells the search widget to expand when its clicked... otherwise, it's pretty useless
+      CalciteMapArcGISSupport.setSearchExpandEvents(searchWidget);
+      
+      // Create and add our widgets to our view. If you notice, when this application loads the only the widgets
+        // I defined in the HTML (polygon and reset) load. The others load afterward. This is because when
+        // we set up our map, we said "no UI (user-interface (widget)) components. Now, we add them. This allows
+        // the map to load first _then_ to add the functional components -- i.e. improving load time.
+      
+     // Create and add the Home Widget to the view (named mapView in our JS)
+     const home = new Home({
+       view: mapView
+     });
+     mapView.ui.add(home, "top-left");
+      
+     // Create and add the Zoom Widget to the view (named mapView in our JS)
+     const zoom = new Zoom({
+       view: mapView
+     });
+     mapView.ui.add(zoom, "top-left");
+      
+    // We are now doing a bit of 'hocus-pocus' that is important to fully understand:
+      // First, we're creating a JS variable called 'sampleInstructions.' that is actually an empty div class in our document.
+      // Then we're setting its properties (style and innerHTML). The style is its inline-css. InnerHTML
+      // refers to the HTML within the div (imagine this <div style="width:300px"><p>Inner<b>HTML</b></p></div>)
+    const sampleInstructions = document.createElement("div");
+    sampleInstructions.style.padding = "10px";
+    sampleInstructions.style.backgroundColor = "white";
+    sampleInstructions.style.width = "300px";
+    sampleInstructions.innerHTML = [
+      "<b>Looking for help? Great News!</b> </br> </br> This application is really simple, so there's only a few things to know: </br> <br /> <ul><li>The only thing you can do here is draw polygons on the map</li> <li>You can start drawing your polygon after clicking on the draw button on the navigation bar</li> <li>After you've clicked the draw button, click on the map. Each time you click, we'll add a vertex (corner) to your shape</li><li>When you're ready to be done, double click. That will end your drawing</li><li> After you've drawn, we'll do some math to show you how this area's tax value has changed over time</li></ul><br /> And if you want to analyze another area, hit the delete button and start again!"
+    ].join(" ");
+	
+      // Next we are creating an Expand Widget and setting its properties (the icon it uses, the
+      // tooltip it provides when you hover, the view (i.e. where the widget is applied) and the content
+      // which is set to the above variable called 'sampleInstructions.'
+    const instructionsExpand = new Expand({
+      expandIconClass: "esri-icon-question",
+      expandTooltip: "How to use this sample",
+      view: mapView,
+      content: sampleInstructions
+    });
+    mapView.ui.add(instructionsExpand, "top-left");
+      
+    // Create and add the Basemap Widget to the view (named mapView in our JS)
+    const basemapToggle = new BasemapToggle({
+      view: mapView,
+      secondBasemap: "satellite"
+    });
+    mapView.ui.add(basemapToggle, "bottom-right");          
+      
+    // This is a somewhat (relatively speaking...) complex function to provide the sketching 
+    // functionality to the draw widget. 
+      // First we set up a 'listener.' This means we create something that is initiate when a particular
+      // event (action) happens within our mapView. We first define the symbologies of the graphics
+      // for while we are drawing the polygon. 
+    mapView.when(function () {
+      const sketchViewModel = new SketchViewModel({
+        view: mapView,
+        layer: tempGraphicsLayer,
+        pointSymbol: {
+          type: "simple-marker", 
+          style: "square",
+          color: "#D198C6",
+          size: "16px",
+          outline: { 
+            color: "#7A306C",
+            width: 3
+          }
+        },
+        polylineSymbol: {
+          type: "simple-line",
+          color: "#8A2BE2",
+          width: "4",
+          style: "dash"
+        },
+        polygonSymbol: {
+          type: "simple-fill",
+          color: "rgba(142, 141, 190, 0.5)",
+          style: "solid",
+          outline: {
+            color: "#6F6F96",
+            width: 1
+          }
+        }
+      });
+      
+      // This is establishing a click Handler to watch the mapview for clicks. When clicks happen, vertices are
+      // created. We need to make sure we are privy to clicks obviously.
+          setUpClickHandler();
+      
+      // This is a specific listener. Essentially it does the following. 
+        // The listener we have on the sketchViewModel (stay with me... it'll make more sense in a bit)
+        // has several types of events it can emit. One of those emits is called 'create-complete' and 
+        // is associated with a double-click. So the .on method is saying this:
+        // When the "create-complete" event is sent from (on) the sketchViewModel, initiate the addGraphic
+        // function (defined below). In this context, 'addGraphic' is known as a callback function -- I 
+        // would google that if you're unfamilar with that term... it's a biggie.
+      sketchViewModel.on("create-complete", addGraphic);
+      
+      // Here we're executing the addEvent function which requires the input of 'event.' That input is
+        // sent by the above function. So once the 'create-complete' event is sent, then this function is triggered.
+        // In this function, we're going to execute a bunch of queries against our tax web service (named taxHistoryFeatureLayer).
+      function addGraphic(event) {
+        // The first step is to define the staistic defintions (i.e. what statistics we want from what fields
+        // in the taxHistoryLayer). The supported statistic queries are outlined in Esri's REST API documentation.
+        const statDefinitions = [
+          {
+            onStatisticField: "totalvalue",
+            outStatisticFieldName: "totalValue2017",
+            statisticType: "avg"
+          },
+          {
+            onStatisticField: "totalvalue_12",
+            outStatisticFieldName: "totalValue2016",
+            statisticType: "avg"
+          },
+          {
+            onStatisticField: "totalvalue_1",
+            outStatisticFieldName: "totalValue2015",
+            statisticType: "avg"
+          },
+          {
+            onStatisticField: "landvalue",
+            outStatisticFieldName: "landValue2017",
+            statisticType: "avg"
+          },
+          {
+            onStatisticField: "landvalue_12",
+            outStatisticFieldName: "landValue2016",
+            statisticType: "avg"
+          },
+          {
+            onStatisticField: "landvalue_1",
+            outStatisticFieldName: "landValue2015",
+            statisticType: "avg"
+          }
+        ]
+      
+        // Next, were going to create a new graphic based on the event's geometry (i.e. all the vertices
+        // derived from clicks). We're then going to add that to the map so users can see their area.
+        const graphic = new Graphic({
+          geometry: event.geometry,
+          symbol: sketchViewModel.graphic.symbol
+        });
+        tempGraphicsLayer.add(graphic);
+            
+        // Now we're going to put a few things together. We're going to create a new query against the
+        // taxHistoryFeatureLayer using the .createQuery() method (specified in Esri's JS API documentation).
+        // Most importantly, we're specifying a few query parameters:
+          // the WHERE clause -- this is set to 1=1 as that corresponds to 'all records';
+          // the spatial query geometry -- this is set equal to the geometry of the graphic that the
+          // user just sketched; and
+          // the outStatistics parameters -- this is equal to our above definitions.
+        const queryParams = taxHistoryFeatureLayer.createQuery();
+        queryParams.where = "1 = 1";
+        queryParams.geometry= tempGraphicsLayer.graphics._items[0].geometry;
+        queryParams.outStatistics = statDefinitions;
+            
+        // This step now executes the above query. The above step only _set up_ the query, but didn't
+        // actually execute it. We also use a .then method to initiate a function right after the query
+        // is executed.
+        taxHistoryFeatureLayer.queryFeatures(queryParams).then(function(results) {
+          // The below function are smoke tests to make sure the queries are executing properly. If so, your
+          // browser's dev tools should show some results. If this makes no sense, google 'console.log, javascript' :)
+          console.log(results);
+          console.log(results.features[0].attributes);
+      
+          // These steps do some cool / important things. Essentially, they do the following:
+            // Search the document (i.e. the webpage) for elements with IDs of "area-value" and "historic-value";
+            // Set those elements content (innerHTML) to the results of our query;
+            // Round the values into more readable formats (no one likes a dozen decimals); and
+            // create arrays containing the values of the results for the various years
+          document.getElementById("area-value").innerHTML = "$" + Math.round(results.features[0].attributes.totalValue2017);
+          document.getElementById("historic-value").innerHTML = "$" + Math.round(results.features[0].attributes.totalValue2015);
+          const valueStats = [
+            Math.round(results.features[0].attributes.totalValue2015),
+            Math.round(results.features[0].attributes.totalValue2016),
+            Math.round(results.features[0].attributes.totalValue2017)
+          ];
+          const landStats = [
+            Math.round(results.features[0].attributes.landValue2015),
+            Math.round(results.features[0].attributes.landValue2016),
+            Math.round(results.features[0].attributes.landValue2017)
+          ];
+      
+          // Finally, we then call the updateChart function and specify the name of the Chart and the
+          // new value Array. These are specific calls specified in the Chart.JS documentation.
+            updateChart(totalValue,valueStats);
+            updateChart(propertyValue,landStats);
+        });
+      };
+      
+      // This is the function to update the charts we see in our right-panel. The above function uses this function
+      // as a callback. Again, I'd research that term if it makes no sense :)	  
+      function updateChart(chart, dataValues) {
+        // Smoke test to ensure that the data values are indeed getting passed to this function
+        console.log(dataValues);
+		
+        // This is a looping function to make sure that for each item in the array generated by our spatial
+		// queries, an element is replaced in the appropriate data-array used by the graphs in the panel. 
+        // I.e. For every value that we get returned by the query (that are now stored in an array),
+        // send that data to the chart's appropriate data value array (more on this later).
+        for (i=0; i < dataValues.length; i++) {
+          chart.data.datasets[0].data.splice(i,1,dataValues[i]);
+        };
+      
+	    // Now that we updated the dataValues of the appropriate chart, we now tell the chart to update
+		// itself based on its data-values. The chart will not update itself automatically when data changes,
+		// so we need to tell it to do so.
+        chart.update();
+      };
+      
+      // This is that clickHandler we mentioned before. This is actually what's happening: 
+	    // The clickHandler is listening for clicks on the mapview; 
+		// When a click happens, log the click event (known as the 'event'); and
+		// Pass the event to the application. If the event is meaningful (for instance, if the
+		// click event happened while a user was sketching), the output variable 'results' triggers
+		// some activity by the application.
+      function setUpClickHandler() {
+        mapView.on("click", function(event) {
+          mapView.hitTest(event).then(function(response) {
+            var results = response.results;
+          });
+        });
+      };
+      
+      // But here is the real hero! This is the function that associates the sketching event with
+        // the widget we created in the HTML. This tells the site to apply an onClick listener to the
+        // button and, when it is clicked, start listening for clicks on the map. You'll also notice the
+        // first step is 'reset' -- if we pass multiple geometries (i.e. if I draw five polygons), the 
+        // business-logic doesn't work cleanly... we don't want misleading info!
+      const drawPolygonButton = document.getElementById("polygonButton");
+      drawPolygonButton.onclick = function () {
+        sketchViewModel.reset();
+        tempGraphicsLayer.removeAll();
+        sketchViewModel.create("polygon");
+        setActiveButton(this);
+      };
+      
+      // In case someone wants to clear their graphic manually, this button will remove the graphic
+      // return the map to its initial empty (i.e. now graphics... just data layers) state!
+	  const clearPolygonButton = document.getElementById("resetBtn");
+      clearPolygonButton.onclick = function () {
+        sketchViewModel.reset();
+        tempGraphicsLayer.removeAll();
+        setActiveButton();
+      };
+      
+      // This sets the buttons up so that when one is active, we have some visual queues to know. 
+        // It is also used by the underlying JS API -- but that's a deeper dive.
+      function setActiveButton(selectedButton) {
+        mapView.focus();
+        var elements = document.getElementsByClassName("active");
+        for (var i = 0; i < elements.length; i++) {
+          elements[i].classList.remove("active");
+        }
+        if (selectedButton) {
+          selectedButton.classList.add("active");
+        }
+      }
+    });
+      
+    // Create the charts. This one is all out of the Charts.JS documentation, so I won't
+    // explain it too much. Just know that I chose to use static values for the second data array, which
+	// represents the overall area's values. Since this is going to be constant for a year (in our case), 
+	// I chose to limit the amount of requests the application is making. 
+    var tvChart = document.getElementById("totalValueChart").getContext('2d');
+      var totalValue = new Chart(tvChart, {
+        type: 'line',
+        data: {
+          labels: ["2015", "2016","2017"],
+          datasets: [
+		    {
+              label: "This Area's Home Value",
+              data: [],
+              fill:false,
+              backgroundColor: "#36A2EB",
+              borderColor: "#9bd7ff"
+            },
+			{ // This is that static array I mentioned. 
+              label: "Charlotte's Home Value",
+              data: [980676,1197078,986681],
+              fill:false,
+              backgroundColor: "#FF9F40",
+              borderColor: "#fcd6b3"
+            }
+		  ]
+        },
+        options: {
+          scales: {
+            yAxes: [
+			  {
+                ticks: {
+                  beginAtZero:false
+                }
+              }
+			]
+          },
+          responsive: true,
+          title: {
+            display: true,
+            text: "Total Value Change Over Time"
+          },
+          hover: {
+            mode: "nearest",
+            intersect: true
+          },
+          tooltips : {
+            mode: 'index',
+            intersect: false
+          }
+        }
+      });
+      
+	  // This is the second chart that evaluates property value change, as opposed to total value change. This
+	  // essentially tells us how the neighborhoods value changes, while the total value metric could reflect
+	  // home-improvements, changes in zoning/land-use, etc.
+      var pvChart = document.getElementById("propertyValueChart").getContext('2d');
+      var propertyValue = new Chart(pvChart, {
+        type: 'line',
+        data: {
+          labels: ["2015", "2016","2017"],
+          datasets: [{
+            label: "This Area's Property Value",
+            data: [landValue2015,landValue2016,landValue2017],
+            fill:false,
+            backgroundColor: "#36A2EB",
+            borderColor: "#9bd7ff"
+            },
+			{
+              label: "Charlotte's Property Value",
+              data: [291402,235335,223979],
+              fill:false,
+              backgroundColor: "#FF9F40",
+              borderColor: "#fcd6b3"
+            }
+		  ]
+        },
+        options: {
+          scales: {
+            yAxes: [
+              {
+                ticks: {
+                  beginAtZero:false
+                }
+              }
+            ]
+          },
+          responsive: true,
+          title: {
+            display: true,
+            text: "Property Value Change Over Time"
+          },
+          hover: {
+            mode: "nearest",
+            intersect: true
+          },
+          tooltips : {
+            mode: 'index',
+            intersect: false
+          }
+        }
+      });
+    });
+    </script>
+  </body>
+</html>
